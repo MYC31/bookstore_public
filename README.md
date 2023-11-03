@@ -27,6 +27,7 @@
 
 4. book:
    book_id: str    Primary key
+   store-id: str
    title: str
    author: str
    publisher: str
