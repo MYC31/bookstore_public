@@ -27,22 +27,24 @@
 
 4. book:
    book_id: str    Primary key
-   store-id: str
-   title: str
-   author: str
-   publisher: str
-   original_title: str
-   translator: str
-   pub_year: str
-   pages: int
-   price: int
-   currency_unit: str
-   binding: str
-   isbn: str
-   author_intro: str
-   book_intro: str
-   content: str
-   tags: str
-   picture: str
+   book_info {
+      title: str
+      author: str
+      publisher: str
+      original_title: str
+      translator: str
+      pub_year: str
+      pages: int
+      price: int
+      currency_unit: str
+      binding: str
+      isbn: str
+      author_intro: str
+      book_intro: str
+      content: str
+      tags: list - [str]
+      picture: list - [str]
+   }
+   stock_level: int
 
 
