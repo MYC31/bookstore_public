@@ -11,7 +11,7 @@ class Store:
         # self.database = os.path.join(db_path, "be.db")
         client = pymongo.MongoClient("mongodb://localhost:27017/")
         self.db_name = db_name
-        self.database = client[self.database]
+        self.database = client[self.db_name]
         self.init_tables()
 
     def init_tables(self):
