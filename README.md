@@ -27,6 +27,7 @@
 
 4. book:
    book_id: str    Primary key
+   store_id: str
    book_info {
       title: str
       author: str
