@@ -21,7 +21,7 @@ class GenBook:
     # non_exist_book_id=True, low_stock_level=False
     def gen(
         self, non_exist_book_id: bool, low_stock_level, max_book_count: int = 100
-    ) -> (bool, []):
+    ) -> (bool, []):    #   [(book_id, buy_num)]
         self.__init_book_list__()
         ok = True
         book_db = book.BookDB(large=fe.conf.Use_Large_DB)

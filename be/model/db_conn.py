@@ -33,3 +33,13 @@ class DBConn:
             return False
         else:
             return True
+
+    def order_id_exist(self, order_id):
+        order_collec = self.conn['order']
+        assert isinstance(order_collec, pymongo.collection.Collection)
+        result = order_collec.find_one({"order_id": order_id})
+        if result is None:
+            return False
+        else:
+            return True
+        

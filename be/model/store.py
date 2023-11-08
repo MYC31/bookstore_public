@@ -26,19 +26,21 @@ class Store:
         client = self.get_db_conn()
         try:
             user_collection = client["user"]
-            user_collection.delete_many({})
-            user_collection.create_index([( "user_id", 1 )], name="user_id_index", unique=False)
+            # user_collection.delete_many({})
+            user_collection.create_index([( "user_id", 1 )], name="user_id_index", unique=True)
 
             store_collection = client["store"]
-            store_collection.delete_many({})
+            # store_collection.delete_many({})
             store_collection.create_index([( "store_id", 1 )], name="store_id_index", unique=True)
 
             order_collection = client["order"]
-            store_collection.delete_many({})
-            order_collection.create_index([( "order_id", 1 ), ("user_id", 1)], name="order_id_index")
+            # store_collection.delete_many({})
+            # order_id might be duplicated !!!
+            order_collection.create_index([( "order_id", 1 ), ("user_id", 1)], name="order_id_index", unique=False)
+            order_collection.create_index([("expiration_time", pymongo.ASCENDING)], expireAfterSeconds=0, name="order_ttl_index")
 
             book_collection = client["book"]
-            book_collection.delete_many({})
+            # book_collection.delete_many({})
             book_collection.create_index([("book_id", 1), ("store_id", 1)], name="book_id_store_id_index", unique=True)
             # index creating is not correct !!!
 

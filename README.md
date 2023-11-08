@@ -1,6 +1,6 @@
-#### <center> design of database <center/>  
+### <center> design of database <center/>  
 
-1. user:
+1. #### user:
    user_id: str     Primary key
    password: str
    balance: int
@@ -8,25 +8,30 @@
    terminal: str
    user_store: list - [store_id]
    user_order: list - [order_id]
+
+   <br />
    
 
-2. store:
+2. #### store:
    store_id: str    Primary key
-   user_id: str     (to be discussed)
+   user_id: str  
    book: list - [book_id]
 
+   <br />
 
-3. order:
+3. #### order:
    order_id: str    Primary key
    user_id: str
    store_id: str
    book_id: str
    count: int
    price: int
-   state: int (0: 发货； 1: 收货)
+   state: int 
+
+   <br />
 
 
-4. book:
+4. #### book:
    book_id: str    Primary key
    store_id: str
    book_info {
@@ -50,3 +55,4 @@
    stock_level: int
 
 
+   <br />

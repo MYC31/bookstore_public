@@ -71,4 +71,15 @@ class Buyer:
         response_json = r.json()
         assert isinstance(response_json, dict)
         return r.status_code, response_json.get("book_list")
-
+    
+    def receive_book(self, order_id, store_id, book_id) -> int:
+        json_dict = {
+            "user_id": self.user_id,
+            "store_id": store_id, 
+            "order_id": order_id,
+            "book_id": book_id,
+        }
+        url = urljoin(self.url_prefix, "receive_book")
+        headers = {"token": self.token}
+        r = requests.post(url, headers=headers, json=json_dict)
+        return r.status_code

@@ -7,6 +7,8 @@ from be.model import db_conn
 import pymongo
 from pymongo.errors import PyMongoError
 import json
+import traceback
+
 
 # encode a json string like:
 #   {
@@ -77,6 +79,11 @@ class User(db_conn.DBConn):
             user_collec.insert_one(user_doc)
 
         except PyMongoError:
+            error_message = str(e)
+            traceback_info = traceback.format_exc()
+            with open('/Users/mayechi/MAJOR/f-junior/database/P1/bookstore/model_log.txt', 'w') as file:
+                file.write(error_message + "\n")
+                file.write(traceback_info)
             return error.error_exist_user_id(user_id)
         except BaseException as e:
             return 530, "{}".format(str(e)), ""
@@ -222,4 +229,68 @@ class User(db_conn.DBConn):
         except BaseException as e:
             return 530, "{}".format(str(e))
         return 200, "ok"
+
+    def check_order(self, user_id: str) -> (int, str, list):
+        user_orders = []
+        try:    
+            order_collec = self.conn['order']
+            assert isinstance(order_collec, pymongo.collection.Collection)
+            user_collec = self.conn['user']
+            assert isinstance(user_collec, pymongo.collection.Collection)
+
+            order_id_exist = []
+            cursor = order_collec.find({"user_id": user_id})
+            for order in cursor:
+                assert isinstance(order, dict)  
+                order['_id'] = str(order['_id'])
+                user_orders.append(order)
+                order_id_exist.append(order["order_id"])
+            filter_condition = {"user_id": user_id}
+            update_operation = {"$set": {"user_order": order_id_exist}}
+            user_collec.update_one(filter_condition, update_operation)
+
+        except PyMongoError as e:
+            return 528, "{}".format(str(e)), []
+        except BaseException as e:
+            error_message = str(e)
+            traceback_info = traceback.format_exc()
+            with open('/Users/mayechi/MAJOR/f-junior/database/P1/bookstore/model_log.txt', 'w') as file:
+                file.write(error_message + "\n")
+                file.write(traceback_info)
+            return 530, "{}".format(str(e)), []
+
+        return 200, "ok", user_orders
+
+    def cancell_order(self, user_id: str, order_id: str, store_id: str, book_id: str) -> (int, str):
+        try:    
+            order_collec = self.conn['order']
+            assert isinstance(order_collec, pymongo.collection.Collection)
+            user_collec = self.conn['user']
+            assert isinstance(user_collec, pymongo.collection.Collection)
+
+            if not self.user_id_exist(user_id):
+                return error.error_non_exist_user_id(user_id)
+
+            filter_condition = {"user_id": user_id, "order_id": order_id,
+                                "store_id": store_id, "book_id": book_id,}
+            result = order_collec.delete_one(filter_condition)
+            if result.deleted_count == 0:
+                return error.error_non_exist_order_id(order_id)
+            
+            filter_condition = {"user_id": user_id}
+            update_operation = {"$pull": {"user_order": order_id}}
+            result = user_collec.update_one(filter_condition, update_operation)
+
+        except PyMongoError as e:
+            return 528, "{}".format(str(e))
+        except BaseException as e:
+            error_message = str(e)
+            traceback_info = traceback.format_exc()
+            with open('/Users/mayechi/MAJOR/f-junior/database/P1/bookstore/model_log.txt', 'w') as file:
+                file.write(error_message + "\n")
+                file.write(traceback_info)
+            return 530, "{}".format(str(e))
+
+        return 200, "ok"
+
 

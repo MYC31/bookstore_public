@@ -55,3 +55,22 @@ def change_password():
         user_id=user_id, old_password=old_password, new_password=new_password
     )
     return jsonify({"message": message}), code
+
+
+@bp_auth.route("/check_order", methods=["POST"])
+def check_order():
+    user_id = request.json.get("user_id", "")
+    u = user.User()
+    code, message, user_order = u.check_order(user_id)
+    return jsonify({"message": message, "user_order": user_order}), code
+
+
+@bp_auth.route("/cancell_order", methods=["POST"])
+def cancell_order():
+    user_id = request.json.get("user_id", "")
+    order_id = request.json.get("order_id", "")
+    store_id = request.json.get("store_id", "")
+    book_id = request.json.get("book_id", "")
+    u = user.User()
+    code, message = u.cancell_order(user_id, order_id, store_id, book_id)
+    return jsonify({"message": message}), code

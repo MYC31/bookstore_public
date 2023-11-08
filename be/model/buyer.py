@@ -6,6 +6,9 @@ from be.model import error
 import pymongo
 from pymongo.errors import PyMongoError
 import traceback
+from be.model.db_conf import order_state, order_expire_time
+import traceback
+from datetime import datetime, timedelta
 
 
 class Buyer(db_conn.DBConn):
@@ -78,9 +81,11 @@ class Buyer(db_conn.DBConn):
                 #     "VALUES(?, ?, ?, ?);",
                 #     (uid, book_id, count, price),
                 # )
+                expiration_time = datetime.now() + timedelta(seconds=order_expire_time)
                 new_order = {"order_id": uid, "user_id": user_id, 
                              "store_id": store_id ,"book_id": book_id, 
-                             "count": count, "price": price}
+                             "count": count, "price": price, "state": order_state["new_order"], 
+                             "expiration_time": expiration_time}
                 result = order_collec.insert_one(new_order)   
                 query = {"user_id": user_id}
                 update_operation = {"$push": {"user_order": uid}}
@@ -170,6 +175,11 @@ class Buyer(db_conn.DBConn):
                 total_price = total_price + price * count
             if balance < total_price:
                 return error.error_not_sufficient_funds(order_id)
+            
+            # change every order state to be paid
+            filter = {"order_id": order_id, "state": order_state["new_order"]}
+            update = {"$set": {"state": order_state["paid"]}}
+            result = order_collec.update_many(filter, update)
 
             # cut down specfic buyer's balance from user doc set
             # cursor = conn.execute(
@@ -201,12 +211,15 @@ class Buyer(db_conn.DBConn):
             # cursor = conn.execute(
             #     "DELETE FROM new_order WHERE order_id = ?", (order_id,)
             # )
-            result = order_collec.delete_one({"order_id": order_id})
-            if result.deleted_count == 0:
-                return error.error_invalid_order_id(order_id)
-            filter_condition = {"user_id": buyer_id}
-            update_operation = {"$pull": {"user_order": order_id}}
-            user_collec.update_one(filter_condition, update_operation)
+
+            # after order state is introduced, paid order is not deleted at once !!!
+
+            # result = order_collec.delete_one({"order_id": order_id})
+            # if result.deleted_count == 0:
+            #     return error.error_invalid_order_id(order_id)
+            # filter_condition = {"user_id": buyer_id}
+            # update_operation = {"$pull": {"user_order": order_id}}
+            # user_collec.update_one(filter_condition, update_operation)
 
         except PyMongoError as e:
             return 528, "{}".format(str(e))
@@ -252,7 +265,7 @@ class Buyer(db_conn.DBConn):
 
     # title, tags, book_intro, content, searching by keyword
     # return whole book document 
-    def search_book(self, user_id, store_id, keyword: str) -> list:
+    def search_book(self, user_id, store_id, keyword: str) -> (int, str, list):
         try:
             match = []
             user_collec = self.conn['user']
@@ -293,3 +306,41 @@ class Buyer(db_conn.DBConn):
         except BaseException as e:
             return 530, "{}".format(str(e)), match
         return 200, "ok", match
+
+    def receive_book(self, user_id: str, order_id: str, store_id: str, book_id: str) -> (int, str):
+        try:
+            if not self.user_id_exist(user_id):
+                return error.error_non_exist_user_id(user_id)
+            if not self.store_id_exist(store_id):
+                return error.error_non_exist_store_id(store_id)
+            if not self.book_id_exist(store_id, book_id):
+                return error.error_non_exist_book_id(book_id)
+            
+            order_collec = self.conn['order']
+            assert isinstance(order_collec, pymongo.collection.Collection)
+            filter_condition = {"book_id": book_id, "store_id": store_id, 
+                                "user_id": user_id, "order_id": order_id}
+            order = order_collec.find_one(filter_condition)
+            # check whether the state of order is cancelled or delivered
+            # avoid repeated delivery of order
+            if order is None:
+                return error.error_non_exist_order_id(order_id)
+            if order["state"] != order_state["delivered"]:
+                return error.error_wrong_order_state(order_id + " -- " + str(order["state"]))
+            
+            assert isinstance(order_collec, pymongo.collection.Collection)
+            update_operation = {"$set": {"state": order_state["received"]}}
+            order_collec.update_one(filter_condition, update_operation)
+
+        except PyMongoError as e:
+            return 528, "{}".format(str(e))
+        except BaseException as e:
+            error_message = str(e)
+            traceback_info = traceback.format_exc()
+            with open('/Users/mayechi/MAJOR/f-junior/database/P1/bookstore/model_log.txt', 'w') as file:
+                file.write(error_message + "\n")
+                file.write(traceback_info)
+            return 530, "{}".format(str(e))
+
+        return 200, "ok"
+    
