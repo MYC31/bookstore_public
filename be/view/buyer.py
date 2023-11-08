@@ -2,6 +2,7 @@ from flask import Blueprint
 from flask import request
 from flask import jsonify
 from be.model.buyer import Buyer
+import json
 
 bp_buyer = Blueprint("buyer", __name__, url_prefix="/buyer")
 
@@ -47,3 +48,14 @@ def add_funds():
     b = Buyer()
     code, message = b.add_funds(user_id, password, add_value)
     return jsonify({"message": message}), code
+
+
+@bp_buyer.route("/search_book", methods=["POST"])
+def search_book():
+    user_id = request.json.get("user_id")
+    store_id = request.json.get("store_id")
+    keyword = request.json.get("keyword")
+    b = Buyer()
+    code, message, book_list = b.search_book(user_id, store_id, keyword)
+    # book_list_json = json.dumps(book_list)
+    return jsonify({"message": message, "book_list": book_list}), code

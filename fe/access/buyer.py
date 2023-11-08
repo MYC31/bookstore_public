@@ -2,6 +2,7 @@ import requests
 import simplejson
 from urllib.parse import urljoin
 from fe.access.auth import Auth
+import json
 
 
 class Buyer:
@@ -19,7 +20,7 @@ class Buyer:
         books = []
         for id_count_pair in book_id_and_count:
             books.append({"id": id_count_pair[0], "count": id_count_pair[1]})
-        json = {"user_id": self.user_id, "store_id": store_id, "books": books}
+        json_dict = {"user_id": self.user_id, "store_id": store_id, "books": books}
 
 
         # # test code by myc
@@ -31,28 +32,43 @@ class Buyer:
         # print(simplejson.dumps(json))
         url = urljoin(self.url_prefix, "new_order")
         headers = {"token": self.token}
-        r = requests.post(url, headers=headers, json=json)
+        r = requests.post(url, headers=headers, json=json_dict)
         response_json = r.json()
         return r.status_code, response_json.get("order_id")
 
     def payment(self, order_id: str):
-        json = {
+        json_dict = {
             "user_id": self.user_id,
             "password": self.password,
             "order_id": order_id,
         }
         url = urljoin(self.url_prefix, "payment")
         headers = {"token": self.token}
-        r = requests.post(url, headers=headers, json=json)
+        r = requests.post(url, headers=headers, json=json_dict)
         return r.status_code
 
     def add_funds(self, add_value: str) -> int:
-        json = {
+        json_dict = {
             "user_id": self.user_id,
             "password": self.password,
             "add_value": add_value,
         }
         url = urljoin(self.url_prefix, "add_funds")
         headers = {"token": self.token}
-        r = requests.post(url, headers=headers, json=json)
+        r = requests.post(url, headers=headers, json=json_dict)
         return r.status_code
+    
+    # test method
+    def search_book(self, store_id, keyword: str) -> (int, list):
+        json_dict = {
+            "user_id": self.user_id,
+            "store_id": store_id, 
+            "keyword": keyword,
+        }
+        url = urljoin(self.url_prefix, "search_book")
+        headers = {"token": self.token}
+        r = requests.post(url, headers=headers, json=json_dict)
+        response_json = r.json()
+        assert isinstance(response_json, dict)
+        return r.status_code, response_json.get("book_list")
+

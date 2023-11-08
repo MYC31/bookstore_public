@@ -23,6 +23,7 @@
    book_id: str
    count: int
    price: int
+   state: int (0: 发货； 1: 收货)
 
 
 4. book:

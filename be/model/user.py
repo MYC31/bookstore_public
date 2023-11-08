@@ -64,12 +64,6 @@ class User(db_conn.DBConn):
             terminal = "terminal_{}".format(str(time.time()))
             token = jwt_encode(user_id, terminal)
 
-        #   self.conn.execute(
-        #        "INSERT into user(user_id, password, balance, token, terminal) "
-        #        "VALUES (?, ?, ?, ?, ?);",
-        #        (user_id, password, 0, token, terminal),
-        #    )
-        #    self.conn.commit()
             user_doc = {
                 "user_id" : user_id,
                 "password" : password,
@@ -84,12 +78,11 @@ class User(db_conn.DBConn):
 
         except PyMongoError:
             return error.error_exist_user_id(user_id)
+        except BaseException as e:
+            return 530, "{}".format(str(e)), ""
         return 200, "ok"
 
     def check_token(self, user_id: str, token: str) -> (int, str):
-
-
-        #cursor = self.conn.execute("SELECT token from user where user_id=?", (user_id,))
         
         user_collec = self.conn['user']
         assert isinstance(user_collec, pymongo.collection.Collection)
@@ -229,3 +222,4 @@ class User(db_conn.DBConn):
         except BaseException as e:
             return 530, "{}".format(str(e))
         return 200, "ok"
+

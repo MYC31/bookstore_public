@@ -31,6 +31,7 @@ class Buyer(db_conn.DBConn):
             user_collec = self.conn['user']
             assert isinstance(user_collec, pymongo.collection.Collection)
 
+            # this loop should be optimized to be aggregation operation
             for book_id, count in id_and_count:
                 # select specific book info from book doc set
 
@@ -248,3 +249,47 @@ class Buyer(db_conn.DBConn):
             return 530, "{}".format(str(e))
 
         return 200, "ok"
+
+    # title, tags, book_intro, content, searching by keyword
+    # return whole book document 
+    def search_book(self, user_id, store_id, keyword: str) -> list:
+        try:
+            match = []
+            user_collec = self.conn['user']
+            assert isinstance(user_collec, pymongo.collection.Collection)
+
+            result = user_collec.find_one({"user_id": user_id})
+            if result is None:
+                return error.error_non_exist_user_id(user_id) + (match, )
+
+            query = {"$text": {"$search": keyword}}
+
+            if store_id is not None:
+                store_collec = self.conn['store']
+                assert isinstance(store_collec, pymongo.collection.Collection)
+                result = store_collec.find_one({"store_id": store_id})
+                if result is None:
+                    return error.error_non_exist_store_id(store_id) + (match, )
+                query = {"$and": [{"$text": {"$search": keyword}}, {"store_id": store_id}]}
+
+            book_collec = self.conn['book']
+            assert isinstance(book_collec, pymongo.collection.Collection)     
+
+            query = {"$text": {"$search": keyword}}
+            projection = {"score": {"$meta": "textScore"}}
+            cursor = book_collec.find(query, projection).sort([("score", {"$meta": "textScore"})])
+            # match = [book for book in cursor]
+            for book in cursor:
+                book['_id'] = str(book['_id'])
+                match.append(book)
+
+        except PyMongoError as e:
+            error_message = str(e)
+            traceback_info = traceback.format_exc()
+            with open('/Users/mayechi/MAJOR/f-junior/database/P1/bookstore/model_log.txt', 'w') as file:
+                file.write(error_message + "\n")
+                file.write(traceback_info)
+            return 528, "{}".format(str(e)), match
+        except BaseException as e:
+            return 530, "{}".format(str(e)), match
+        return 200, "ok", match

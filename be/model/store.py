@@ -1,6 +1,8 @@
 import logging
 import os
 import pymongo
+from pymongo.errors import PyMongoError
+import traceback
 
 
 class Store:
@@ -12,9 +14,9 @@ class Store:
         
         # delete all mongodb databases, 
         # this operation should be deleted when app onlne
-        database_names = client.list_database_names()
-        if db_name in database_names:
-            client.drop_database(db_name)
+        # database_names = client.list_database_names()
+        # if db_name in database_names:
+        #     client.drop_database(db_name)
             
         self.db_name = db_name
         self.database = client[self.db_name]
@@ -24,17 +26,32 @@ class Store:
         client = self.get_db_conn()
         try:
             user_collection = client["user"]
-            # user_collection.create_index([("user_id", 1)], name="user_id_index", unique=True)
+            user_collection.delete_many({})
+            user_collection.create_index([( "user_id", 1 )], name="user_id_index", unique=False)
 
             store_collection = client["store"]
-            # store_collection.create_index([("store_id", 1)], name="store_id_index", unique=True)
+            store_collection.delete_many({})
+            store_collection.create_index([( "store_id", 1 )], name="store_id_index", unique=True)
 
             order_collection = client["order"]
-            # order_collection.create_index([("order_id", 1)], name="order_id_index", unique=True)
+            store_collection.delete_many({})
+            order_collection.create_index([( "order_id", 1 ), ("user_id", 1)], name="order_id_index")
 
             book_collection = client["book"]
-            # book_collection.create_index([("book_id", 1), ("store_id", 1)], name="book_id_store_id_index", unique=True)
+            book_collection.delete_many({})
+            book_collection.create_index([("book_id", 1), ("store_id", 1)], name="book_id_store_id_index", unique=True)
+            # index creating is not correct !!!
 
+            index_keys = [("book_info.title", pymongo.TEXT), ("book_info.content", pymongo.TEXT),
+              ("book_info.tags", pymongo.TEXT), ("book_info.book_intro", pymongo.TEXT), ]
+            book_collection.create_index(index_keys, default_language="english")
+
+        except PyMongoError as e:
+            error_message = str(e)
+            traceback_info = traceback.format_exc()
+            with open('/Users/mayechi/MAJOR/f-junior/database/P1/bookstore/store_log.txt', 'w') as file:
+                file.write(error_message + "\n")
+                file.write(traceback_info)
         except Exception as e:
             logging.error(e)
 
